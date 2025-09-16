@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
+import 'package:flame/particles.dart';
 import 'package:flame/image_composition.dart' as composition;
 import 'package:flutter/material.dart';
 
@@ -166,5 +167,49 @@ class FruitComponent extends SpriteComponent {
     parentComponent.addScore();
 
     removeFromParent();
+  }
+
+  void onTapIce() {
+    if (fruit.isBomb) {
+      parentComponent.gameOver();
+      return;
+    }
+
+    _spawnIceShatter();
+    parentComponent.addScore();
+    removeFromParent();
+  }
+
+  void _spawnIceShatter() {
+    final int shards = 30;
+    final double life = 0.8;
+    final particle = Particle.generate(
+      count: shards,
+      lifespan: life,
+      generator: (i) {
+        final angleRad = (2 * pi) * (i / shards) + Random().nextDouble() * .3;
+        final speed = 120 + Random().nextDouble() * 200;
+        final velocity = Vector2(cos(angleRad), sin(angleRad)) * speed;
+        final paint = Paint()
+          ..color = (i % 3 == 0
+                  ? Colors.lightBlueAccent
+                  : (i % 3 == 1 ? Colors.cyanAccent : Colors.white))
+              .withOpacity(.95 - (i / (shards + 8)));
+        return AcceleratedParticle(
+          acceleration: Vector2(0, 600),
+          speed: velocity,
+          position: Vector2.zero(),
+          child: CircleParticle(
+            radius: 1.2 + Random().nextDouble() * 2.4,
+            paint: paint,
+          ),
+        );
+      },
+    );
+    parentComponent.add(ParticleSystemComponent(
+      particle: particle,
+      position: center.clone(),
+      priority: 10,
+    ));
   }
 }

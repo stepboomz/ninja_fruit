@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/parallax.dart';
 import 'package:flutter_fruit_ninja/src/config/app_config.dart';
@@ -10,7 +11,7 @@ import 'package:flutter_fruit_ninja/src/routes/game_page.dart';
 import 'package:flutter_fruit_ninja/src/routes/home_page.dart';
 import 'package:flutter_fruit_ninja/src/routes/pause_game.dart';
 
-class MainRouterGame extends FlameGame {
+class MainRouterGame extends FlameGame with TapCallbacks {
   late final RouterComponent router;
   late double maxVerticalVelocity;
 
