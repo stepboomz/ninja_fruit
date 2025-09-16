@@ -20,6 +20,7 @@ class FruitComponent extends SpriteComponent {
   bool canDragOnShape = false;
   GamePage parentComponent;
   bool divided;
+  final bool fallingFromTop;
 
   FruitComponent(
     this.parentComponent,
@@ -33,6 +34,7 @@ class FruitComponent extends SpriteComponent {
     double? angle,
     Anchor? anchor,
     this.divided = false,
+    this.fallingFromTop = false,
   }) : super(
           sprite: Sprite(image),
           position: p,
@@ -53,10 +55,16 @@ class FruitComponent extends SpriteComponent {
     angle += .5 * dt;
     angle %= 2 * pi;
 
-    position +=
-        Vector2(velocity.x, -(velocity.y * dt - .5 * AppConfig.gravity * dt * dt));
-
-    velocity.y += (AppConfig.acceleration + AppConfig.gravity) * dt;
+    if (fallingFromTop) {
+      // Downward motion from top of screen
+      final double g = AppConfig.gravity.abs() * AppConfig.fallSpeedMultiplier;
+      position += Vector2(velocity.x * dt, velocity.y * dt + 0.5 * g * dt * dt);
+      velocity.y += g * dt;
+    } else {
+      position += Vector2(
+          velocity.x, -(velocity.y * dt - .5 * AppConfig.gravity * dt * dt));
+      velocity.y += (AppConfig.acceleration + AppConfig.gravity) * dt;
+    }
 
     if ((position.y - AppConfig.objSize) > pageSize.y) {
       removeFromParent();

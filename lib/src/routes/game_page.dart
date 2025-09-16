@@ -24,6 +24,7 @@ class GamePage extends Component
   late int lives;
   LivesHud? _livesHud;
   final List<CircleComponent> _snowflakes = [];
+  double _lastSpawnTime = 0;
 
   @override
   void onMount() {
@@ -46,6 +47,9 @@ class GamePage extends Component
       final componentTime = random.nextInt(1) + millySecondTime + initTime;
       fruitsTime.add(componentTime);
     }
+    
+    // Add continuous spawning
+    _lastSpawnTime = time;
 
     addAll([
       BackButton(onPressed: () {
@@ -98,8 +102,8 @@ class GamePage extends Component
 
         double posX = random.nextInt(gameSize.x.toInt()).toDouble();
 
-        Vector2 fruitPosition = Vector2(posX, gameSize.y);
-        Vector2 velocity = Vector2(0, game.maxVerticalVelocity);
+        Vector2 fruitPosition = Vector2(posX, -AppConfig.objSize);
+        Vector2 velocity = Vector2(0, game.maxVerticalVelocity * 0.3);
 
         final randFruit = game.fruits.random();
 
@@ -112,9 +116,18 @@ class GamePage extends Component
           image: game.images.fromCache(randFruit.image),
           pageSize: gameSize,
           velocity: velocity,
+          fallingFromTop: true,
         ));
         fruitsTime.remove(element);
       });
+      
+      // Continuous spawning - add new fruit spawn times
+      if (time - _lastSpawnTime > 1.5) { // Spawn every 1.5 seconds
+        final millySecondTime = random.nextInt(100) / 100;
+        final nextSpawnTime = time + 0.5 + millySecondTime; // 0.5-1.5 seconds from now
+        fruitsTime.add(nextSpawnTime);
+        _lastSpawnTime = time;
+      }
     }
   }
 
