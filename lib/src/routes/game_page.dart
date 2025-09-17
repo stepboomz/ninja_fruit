@@ -100,7 +100,10 @@ class GamePage extends Component
       fruitsTime.where((element) => element < time).toList().forEach((element) {
         final gameSize = game.size;
 
-        double posX = random.nextInt(gameSize.x.toInt()).toDouble();
+        final double margin = AppConfig.objSize * 1.2;
+        final double minX = margin;
+        final double maxX = (gameSize.x - margin).clamp(minX + 1, gameSize.x);
+        double posX = minX + random.nextDouble() * (maxX - minX);
 
         Vector2 fruitPosition = Vector2(posX, -AppConfig.objSize);
         Vector2 velocity = Vector2(0, game.maxVerticalVelocity * 0.3);
