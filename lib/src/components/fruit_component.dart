@@ -152,11 +152,18 @@ class FruitComponent extends SpriteComponent {
       return;
     }
 
-    // Add ice shatter effect for all fruits
+    // Check if this is a falling fruit (from top)
+    if (fallingFromTop) {
+      // Falling fruits just explode into ice, don't get sliced
+      _createIceShatterEffect();
+      String fruitName = fruit.image.replaceAll('.png', '');
+      parentComponent.addScore(fruitName);
+      removeFromParent();
+      return;
+    }
+
+    // Add ice shatter effect for regular fruits (thrown up)
     _createIceShatterEffect();
-    //     if (fruit.image.contains('banana') || fruit.image.contains('peach')) {
-    //   _createIceShatterEffect();
-    // }
 
     // angleOfTouchPoint
     final a = Utils.getAngleOfTouchPont(

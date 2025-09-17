@@ -150,10 +150,11 @@ class GamePage extends Component
         double posX = minX + random.nextDouble() * (maxX - minX);
 
         Vector2 fruitPosition = Vector2(posX, -AppConfig.objSize);
-        
+
         // Increase fruit speed as time runs out
         final speedMultiplier = _getFruitSpeedMultiplier();
-        Vector2 velocity = Vector2(0, game.maxVerticalVelocity * 0.3 * speedMultiplier);
+        Vector2 velocity =
+            Vector2(0, game.maxVerticalVelocity * 0.3 * speedMultiplier);
 
         final randFruit = game.fruits.random();
 
@@ -176,10 +177,11 @@ class GamePage extends Component
       if (time - _lastSpawnTime > spawnInterval) {
         // Spawn multiple fruits when time is running low
         final fruitCount = _getFruitSpawnCount();
-        
+
         for (int i = 0; i < fruitCount; i++) {
           final millySecondTime = random.nextInt(100) / 100;
-          final nextSpawnTime = time + (spawnInterval * 0.3) + millySecondTime + (i * 0.1);
+          final nextSpawnTime =
+              time + (spawnInterval * 0.3) + millySecondTime + (i * 0.1);
           fruitsTime.add(nextSpawnTime);
         }
         _lastSpawnTime = time;
@@ -269,32 +271,32 @@ class GamePage extends Component
 
   double _getSpawnInterval() {
     // Calculate spawn interval based on remaining time
-    // Start: 1.5 seconds, End: 0.3 seconds (much faster)
+    // Start: 1.8 seconds, End: 0.8 seconds (more reasonable)
     final timeProgress = (30.0 - gameTimeLeft) / 30.0; // 0.0 to 1.0
-    final minInterval = 0.3; // Fastest spawn rate
-    final maxInterval = 1.5; // Slowest spawn rate
-    
+    final minInterval = 0.8; // Fastest spawn rate (slower than before)
+    final maxInterval = 1.8; // Slowest spawn rate (slower than before)
+
     // Linear interpolation from slow to fast
     return maxInterval - (timeProgress * (maxInterval - minInterval));
   }
 
   double _getFruitSpeedMultiplier() {
     // Calculate speed multiplier based on remaining time
-    // Start: 1.0x speed, End: 2.0x speed (twice as fast)
+    // Start: 1.0x speed, End: 1.5x speed (more reasonable)
     final timeProgress = (30.0 - gameTimeLeft) / 30.0; // 0.0 to 1.0
     final minSpeed = 1.0; // Normal speed
-    final maxSpeed = 2.0; // Double speed
-    
+    final maxSpeed = 1.5; // 1.5x speed (less than before)
+
     // Linear interpolation from normal to fast
     return minSpeed + (timeProgress * (maxSpeed - minSpeed));
   }
 
   int _getFruitSpawnCount() {
     // Calculate how many fruits to spawn at once
-    // Start: 1 fruit, End: 3 fruits (chaos mode!)
-    if (gameTimeLeft > 20) return 1; // Normal: 1 fruit
-    if (gameTimeLeft > 10) return 2; // Medium: 2 fruits
-    return 3; // Chaos: 3 fruits at once!
+    // Start: 1 fruit, End: 2 fruits (more reasonable)
+    if (gameTimeLeft > 15) return 1; // Normal: 1 fruit (longer period)
+    if (gameTimeLeft > 5) return 2; // Medium: 2 fruits (shorter chaos period)
+    return 2; // Max: 2 fruits (reduced from 3)
   }
 
   void _updateTimerDisplay() {
