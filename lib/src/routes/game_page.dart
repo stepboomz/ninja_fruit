@@ -73,9 +73,7 @@ class GamePage extends Component
       ),
     ]);
 
-    if (AppConfig.iceTheme) {
-      _spawnSnow();
-    }
+
   }
 
   @override
@@ -93,9 +91,7 @@ class GamePage extends Component
 
       time += dt;
 
-      if (AppConfig.iceTheme) {
-        _updateSnow(dt);
-      }
+
 
       fruitsTime.where((element) => element < time).toList().forEach((element) {
         final gameSize = game.size;
@@ -135,18 +131,23 @@ class GamePage extends Component
   }
 
   void _spawnSnow() {
-    final int flakeCount = (game.size.x / 12).clamp(20, 80).toInt();
+    final int flakeCount = (game.size.x / 10).clamp(30, 100).toInt();
     for (int i = 0; i < flakeCount; i++) {
       final x = random.nextDouble() * game.size.x;
       final y = random.nextDouble() * game.size.y;
-      final r = 1.5 + random.nextDouble() * 2.0;
-      final speed = 20 + random.nextDouble() * 40;
+      final r = 1.0 + random.nextDouble() * 3.0;
+      final speed = 15 + random.nextDouble() * 50;
+      final opacity = 0.4 + random.nextDouble() * 0.6;
       final flake = CircleComponent(
         position: Vector2(x, y),
         radius: r,
         priority: 5,
-      )..paint = (Paint()..color = const Color(0xCCFFFFFF));
-      flake.add(_SnowBehavior(speed: speed, drift: random.nextDouble() * 0.6 + 0.2));
+      )..paint = (Paint()..color = Color.fromRGBO(255, 255, 255, opacity));
+      flake.add(_SnowBehavior(
+        speed: speed, 
+        drift: random.nextDouble() * 0.8 + 0.3,
+        swaySpeed: random.nextDouble() * 2.0 + 1.0,
+      ));
       _snowflakes.add(flake);
     }
     addAll(_snowflakes);
@@ -154,12 +155,20 @@ class GamePage extends Component
 
   void _updateSnow(double dt) {
     for (final flake in _snowflakes) {
-      flake.position.y += (flake.children.query<_SnowBehavior>().first.speed) * dt;
-      flake.position.x += sin(time + flake.position.y * 0.05) *
-          flake.children.query<_SnowBehavior>().first.drift;
-      if (flake.position.y > game.size.y + 5) {
+      final behavior = flake.children.query<_SnowBehavior>().first;
+      flake.position.y += behavior.speed * dt;
+      flake.position.x += sin(time * behavior.swaySpeed + flake.position.y * 0.03) * behavior.drift;
+      
+      // Add slight rotation to snowflakes
+      if (flake is CircleComponent) {
+        // Create a subtle sparkle effect by varying opacity
+        final sparkle = 0.3 + 0.4 * (1 + sin(time * 3 + flake.position.x * 0.1)) / 2;
+        flake.paint = Paint()..color = Color.fromRGBO(255, 255, 255, sparkle);
+      }
+      
+      if (flake.position.y > game.size.y + 10) {
         flake.position
-          ..y = -5
+          ..y = -10
           ..x = random.nextDouble() * game.size.x;
       }
     }
@@ -174,7 +183,7 @@ class GamePage extends Component
     final position = event.localPosition;
     componentsAtPoint(position).forEach((element) {
       if (element is FruitComponent) {
-        element.onTapIce();
+        element.touchAtPoint(position);
       }
     });
   }
@@ -270,5 +279,10 @@ class HeartIcon extends PositionComponent {
 class _SnowBehavior extends Component {
   final double speed;
   final double drift;
-  _SnowBehavior({required this.speed, required this.drift});
+  final double swaySpeed;
+  _SnowBehavior({
+    required this.speed, 
+    required this.drift,
+    this.swaySpeed = 1.0,
+  });
 }

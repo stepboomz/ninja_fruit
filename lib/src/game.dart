@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/parallax.dart';
+import 'package:flutter/material.dart' hide Route;
 import 'package:flutter_fruit_ninja/src/config/app_config.dart';
 import 'package:flutter_fruit_ninja/src/models/fruit_model.dart';
 import 'package:flutter_fruit_ninja/src/routes/game_over_page.dart';
@@ -35,8 +36,9 @@ class MainRouterGame extends FlameGame with TapCallbacks {
 
     addAll([
       ParallaxComponent(
-          parallax: Parallax(
-              [await ParallaxLayer.load(ParallaxImageData('bg.png'))])),
+          parallax: Parallax([
+            await ParallaxLayer.load(ParallaxImageData('bg.png'))
+          ])),
       router = RouterComponent(initialRoute: 'home', routes: {
         'home': Route(HomePage.new),
         'game-page': Route(GamePage.new),
@@ -60,3 +62,5 @@ class MainRouterGame extends FlameGame with TapCallbacks {
         (size.y - AppConfig.objSize * 2));
   }
 }
+
+

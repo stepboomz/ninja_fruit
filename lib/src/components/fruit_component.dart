@@ -21,6 +21,7 @@ class FruitComponent extends SpriteComponent {
   GamePage parentComponent;
   bool divided;
   final bool fallingFromTop;
+  double _sparkleTimer = 0;
 
   FruitComponent(
     this.parentComponent,
@@ -55,6 +56,8 @@ class FruitComponent extends SpriteComponent {
     angle += .5 * dt;
     angle %= 2 * pi;
 
+    _sparkleTimer += dt;
+
     if (fallingFromTop) {
       // Downward motion from top of screen
       final double g = AppConfig.gravity.abs() * AppConfig.fallSpeedMultiplier;
@@ -72,6 +75,71 @@ class FruitComponent extends SpriteComponent {
       if(!divided && !fruit.isBomb){
         parentComponent.addMistake();
       }
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    // Draw aura effect for fruits (not bombs)
+    if (!fruit.isBomb && fallingFromTop) {
+      _drawAura(canvas);
+    }
+    
+    // Draw the fruit sprite
+    super.render(canvas);
+  }
+
+  void _drawAura(Canvas canvas) {
+    final center = size / 2;
+    final time = _sparkleTimer;
+    
+    // Create pulsing aura effect
+    final auraRadius = (size.x / 2) + 8 + (sin(time * 4) * 3);
+    final auraOpacity = (0.3 + sin(time * 3) * 0.2).clamp(0.1, 0.5);
+    
+    // Choose aura color based on fruit type
+    Color auraColor;
+    if (fruit.image.contains('apple')) {
+      auraColor = Colors.red;
+    } else if (fruit.image.contains('banana')) {
+      auraColor = Colors.yellow;
+    } else if (fruit.image.contains('orange')) {
+      auraColor = Colors.orange;
+    } else if (fruit.image.contains('kiwi')) {
+      auraColor = Colors.green;
+    } else if (fruit.image.contains('peach')) {
+      auraColor = Colors.pink;
+    } else if (fruit.image.contains('pineapple')) {
+      auraColor = Colors.amber;
+    } else {
+      auraColor = Colors.white;
+    }
+    
+    // Draw outer glow
+    final outerPaint = Paint()
+      ..color = auraColor.withValues(alpha: auraOpacity * 0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawCircle(center.toOffset(), auraRadius, outerPaint);
+    
+    // Draw inner glow
+    final innerPaint = Paint()
+      ..color = auraColor.withValues(alpha: auraOpacity * 0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawCircle(center.toOffset(), auraRadius * 0.7, innerPaint);
+    
+    // Draw sparkle particles around the fruit
+    final sparkleCount = 8;
+    for (int i = 0; i < sparkleCount; i++) {
+      final sparkleAngle = (2 * pi * i / sparkleCount) + time * 2;
+      final sparkleDistance = auraRadius * 0.8 + sin(time * 5 + i) * 5;
+      final sparkleX = center.x + cos(sparkleAngle) * sparkleDistance;
+      final sparkleY = center.y + sin(sparkleAngle) * sparkleDistance;
+      
+      final sparkleSize = 1.5 + sin(time * 6 + i * 0.5) * 0.8;
+      final sparklePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.8);
+      
+      canvas.drawCircle(Offset(sparkleX, sparkleY), sparkleSize, sparklePaint);
     }
   }
 
@@ -175,49 +243,5 @@ class FruitComponent extends SpriteComponent {
     parentComponent.addScore();
 
     removeFromParent();
-  }
-
-  void onTapIce() {
-    if (fruit.isBomb) {
-      parentComponent.gameOver();
-      return;
-    }
-
-    _spawnIceShatter();
-    parentComponent.addScore();
-    removeFromParent();
-  }
-
-  void _spawnIceShatter() {
-    final int shards = 30;
-    final double life = 0.8;
-    final particle = Particle.generate(
-      count: shards,
-      lifespan: life,
-      generator: (i) {
-        final angleRad = (2 * pi) * (i / shards) + Random().nextDouble() * .3;
-        final speed = 120 + Random().nextDouble() * 200;
-        final velocity = Vector2(cos(angleRad), sin(angleRad)) * speed;
-        final paint = Paint()
-          ..color = (i % 3 == 0
-                  ? Colors.lightBlueAccent
-                  : (i % 3 == 1 ? Colors.cyanAccent : Colors.white))
-              .withOpacity(.95 - (i / (shards + 8)));
-        return AcceleratedParticle(
-          acceleration: Vector2(0, 600),
-          speed: velocity,
-          position: Vector2.zero(),
-          child: CircleParticle(
-            radius: 1.2 + Random().nextDouble() * 2.4,
-            paint: paint,
-          ),
-        );
-      },
-    );
-    parentComponent.add(ParticleSystemComponent(
-      particle: particle,
-      position: center.clone(),
-      priority: 10,
-    ));
   }
 }
