@@ -152,6 +152,12 @@ class FruitComponent extends SpriteComponent {
       return;
     }
 
+    // Add ice shatter effect for all fruits
+    _createIceShatterEffect();
+    //     if (fruit.image.contains('banana') || fruit.image.contains('peach')) {
+    //   _createIceShatterEffect();
+    // }
+
     // angleOfTouchPoint
     final a = Utils.getAngleOfTouchPont(
         center: position, initAngle: angle, touch: vector2);
@@ -242,5 +248,188 @@ class FruitComponent extends SpriteComponent {
     String fruitName = fruit.image.replaceAll('.png', '');
     parentComponent.addScore(fruitName);
     removeFromParent();
+  }
+
+  void _createIceShatterEffect() {
+    // Create ice shatter particles for banana and peach only
+    final particleCount = 15;
+    final centerPos = position;
+    final random = Random();
+
+    for (int i = 0; i < particleCount; i++) {
+      final angle =
+          (2 * pi * i / particleCount) + (random.nextDouble() * 0.8 - 0.4);
+      final distance = 15 + random.nextDouble() * 25;
+      final particlePos = centerPos +
+          Vector2(
+            cos(angle) * distance,
+            sin(angle) * distance,
+          );
+
+      // Create ice shard particle with varied properties
+      final iceParticle = IceShardParticle(
+        position: particlePos,
+        velocity: Vector2(
+          cos(angle) * (80 + random.nextDouble() * 120),
+          sin(angle) * (80 + random.nextDouble() * 120) -
+              60, // More upward bias
+        ),
+        particleSize: 1.5 + random.nextDouble() * 3.5,
+        lifespan: 1.0 + random.nextDouble() * 0.6,
+        rotationSpeed: (random.nextDouble() - 0.5) * 10, // Random rotation
+      );
+
+      parentComponent.add(iceParticle);
+    }
+
+    // Add a central burst effect
+    final burstParticle = IceBurstEffect(
+      position: centerPos,
+      burstSize: size.x * 0.8,
+    );
+    parentComponent.add(burstParticle);
+  }
+}
+
+// Ice shard particle component
+class IceShardParticle extends PositionComponent {
+  Vector2 velocity;
+  double particleSize;
+  double lifespan;
+  double rotationSpeed;
+  double _currentLife = 0;
+  double _rotation = 0;
+  final double gravity = 250;
+
+  IceShardParticle({
+    required Vector2 position,
+    required this.velocity,
+    required this.particleSize,
+    required this.lifespan,
+    this.rotationSpeed = 0,
+  }) : super(position: position);
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    // Update position
+    position += velocity * dt;
+
+    // Apply gravity and air resistance
+    velocity.y += gravity * dt;
+    velocity *= 0.98; // Air resistance
+
+    // Update rotation
+    _rotation += rotationSpeed * dt;
+
+    // Update life
+    _currentLife += dt;
+
+    // Remove when lifespan is over
+    if (_currentLife >= lifespan) {
+      removeFromParent();
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    // Calculate alpha based on remaining life
+    final alpha = (1.0 - (_currentLife / lifespan)).clamp(0.0, 1.0);
+
+    canvas.save();
+    canvas.rotate(_rotation);
+
+    // Draw ice shard as a crystalline shape
+    final paint = Paint()
+      ..color = Colors.lightBlue.withValues(alpha: alpha * 0.9)
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = Colors.white.withValues(alpha: alpha)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    // Draw more complex ice crystal shape
+    final path = Path();
+    path.moveTo(0, -particleSize); // Top
+    path.lineTo(particleSize * 0.4, -particleSize * 0.3); // Top right
+    path.lineTo(particleSize * 0.8, 0); // Right
+    path.lineTo(particleSize * 0.4, particleSize * 0.6); // Bottom right
+    path.lineTo(0, particleSize); // Bottom
+    path.lineTo(-particleSize * 0.4, particleSize * 0.6); // Bottom left
+    path.lineTo(-particleSize * 0.8, 0); // Left
+    path.lineTo(-particleSize * 0.4, -particleSize * 0.3); // Top left
+    path.close();
+
+    canvas.drawPath(path, paint);
+    canvas.drawPath(path, borderPaint);
+
+    canvas.restore();
+  }
+}
+
+// Ice burst effect component
+class IceBurstEffect extends PositionComponent {
+  double burstSize;
+  double _currentLife = 0;
+  final double lifespan = 0.3;
+
+  IceBurstEffect({
+    required Vector2 position,
+    required this.burstSize,
+  }) : super(position: position);
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    _currentLife += dt;
+
+    if (_currentLife >= lifespan) {
+      removeFromParent();
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final progress = _currentLife / lifespan;
+    final alpha = (1.0 - progress).clamp(0.0, 1.0);
+    final currentSize = burstSize * (0.5 + progress * 1.5);
+
+    // Draw expanding ice burst ring
+    final paint = Paint()
+      ..color = Colors.lightBlue.withValues(alpha: alpha * 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+
+    final innerPaint = Paint()
+      ..color = Colors.white.withValues(alpha: alpha * 0.8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    canvas.drawCircle(Offset.zero, currentSize, paint);
+    canvas.drawCircle(Offset.zero, currentSize * 0.7, innerPaint);
+
+    // Draw radiating lines
+    for (int i = 0; i < 8; i++) {
+      final angle = (2 * pi * i / 8);
+      final startRadius = currentSize * 0.3;
+      final endRadius = currentSize * 0.9;
+
+      final linePaint = Paint()
+        ..color = Colors.white.withValues(alpha: alpha * 0.7)
+        ..strokeWidth = 1.0;
+
+      canvas.drawLine(
+        Offset(cos(angle) * startRadius, sin(angle) * startRadius),
+        Offset(cos(angle) * endRadius, sin(angle) * endRadius),
+        linePaint,
+      );
+    }
   }
 }
