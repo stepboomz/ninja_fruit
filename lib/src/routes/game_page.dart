@@ -10,6 +10,7 @@ import 'package:flutter_fruit_ninja/src/components/back_button.dart';
 import 'package:flutter_fruit_ninja/src/components/pause_button.dart';
 import 'package:flutter_fruit_ninja/src/config/app_config.dart';
 import 'package:flutter_fruit_ninja/src/game.dart';
+import 'package:flutter_fruit_ninja/src/models/fruit_model.dart';
 import '../components/fruit_component.dart';
 
 class GamePage extends Component
@@ -156,7 +157,18 @@ class GamePage extends Component
         Vector2 velocity =
             Vector2(0, game.maxVerticalVelocity * 0.3 * speedMultiplier);
 
-        final randFruit = game.fruits.random();
+        // Weighted random selection for falling fruits
+        // Apple: 80%, Banana: 15%, Peach: 5%
+        final randomValue = random.nextDouble();
+        FruitModel randFruit;
+        
+        if (randomValue < 0.8) {           // 80% Apple
+          randFruit = FruitModel(image: "apple.png");
+        } else if (randomValue < 0.95) {   // 15% Banana (0.8 + 0.15 = 0.95)
+          randFruit = FruitModel(image: "banana.png");
+        } else {                           // 5% Peach (remaining 0.05)
+          randFruit = FruitModel(image: "peach.png");
+        }
 
         add(FruitComponent(
           this,
