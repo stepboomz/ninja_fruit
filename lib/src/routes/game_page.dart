@@ -158,15 +158,21 @@ class GamePage extends Component
             Vector2(0, game.maxVerticalVelocity * 0.3 * speedMultiplier);
 
         // Weighted random selection for falling fruits
-        // Apple: 80%, Banana: 15%, Peach: 5%
+        // Bomb: 40%, Apple: 35%, Banana: 15%, Peach: 10%
         final randomValue = random.nextDouble();
         FruitModel randFruit;
-        
-        if (randomValue < 0.8) {           // 80% Apple
+
+        if (randomValue < 0.40) {
+          // 40% Bomb
+          randFruit = FruitModel(image: "bomb.png", isBomb: true);
+        } else if (randomValue < 0.75) {
+          // 35% Apple (0.40 + 0.35 = 0.75)
           randFruit = FruitModel(image: "apple.png");
-        } else if (randomValue < 0.95) {   // 15% Banana (0.8 + 0.15 = 0.95)
+        } else if (randomValue < 0.90) {
+          // 15% Banana (0.75 + 0.15 = 0.90)
           randFruit = FruitModel(image: "banana.png");
-        } else {                           // 5% Peach (remaining 0.05)
+        } else {
+          // 10% Peach (remaining 0.10)
           randFruit = FruitModel(image: "peach.png");
         }
 
