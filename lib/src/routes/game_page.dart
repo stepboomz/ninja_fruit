@@ -150,7 +150,10 @@ class GamePage extends Component
         double posX = minX + random.nextDouble() * (maxX - minX);
 
         Vector2 fruitPosition = Vector2(posX, -AppConfig.objSize);
-        Vector2 velocity = Vector2(0, game.maxVerticalVelocity * 0.3);
+        
+        // Increase fruit speed as time runs out
+        final speedMultiplier = _getFruitSpeedMultiplier();
+        Vector2 velocity = Vector2(0, game.maxVerticalVelocity * 0.3 * speedMultiplier);
 
         final randFruit = game.fruits.random();
 
@@ -168,13 +171,17 @@ class GamePage extends Component
         fruitsTime.remove(element);
       });
 
-      // Continuous spawning - add new fruit spawn times
-      if (time - _lastSpawnTime > 1.5) {
-        // Spawn every 1.5 seconds
-        final millySecondTime = random.nextInt(100) / 100;
-        final nextSpawnTime =
-            time + 0.5 + millySecondTime; // 0.5-1.5 seconds from now
-        fruitsTime.add(nextSpawnTime);
+      // Dynamic spawning - faster as time runs out
+      final spawnInterval = _getSpawnInterval();
+      if (time - _lastSpawnTime > spawnInterval) {
+        // Spawn multiple fruits when time is running low
+        final fruitCount = _getFruitSpawnCount();
+        
+        for (int i = 0; i < fruitCount; i++) {
+          final millySecondTime = random.nextInt(100) / 100;
+          final nextSpawnTime = time + (spawnInterval * 0.3) + millySecondTime + (i * 0.1);
+          fruitsTime.add(nextSpawnTime);
+        }
         _lastSpawnTime = time;
       }
     }
@@ -260,6 +267,36 @@ class GamePage extends Component
     }
   }
 
+  double _getSpawnInterval() {
+    // Calculate spawn interval based on remaining time
+    // Start: 1.5 seconds, End: 0.3 seconds (much faster)
+    final timeProgress = (30.0 - gameTimeLeft) / 30.0; // 0.0 to 1.0
+    final minInterval = 0.3; // Fastest spawn rate
+    final maxInterval = 1.5; // Slowest spawn rate
+    
+    // Linear interpolation from slow to fast
+    return maxInterval - (timeProgress * (maxInterval - minInterval));
+  }
+
+  double _getFruitSpeedMultiplier() {
+    // Calculate speed multiplier based on remaining time
+    // Start: 1.0x speed, End: 2.0x speed (twice as fast)
+    final timeProgress = (30.0 - gameTimeLeft) / 30.0; // 0.0 to 1.0
+    final minSpeed = 1.0; // Normal speed
+    final maxSpeed = 2.0; // Double speed
+    
+    // Linear interpolation from normal to fast
+    return minSpeed + (timeProgress * (maxSpeed - minSpeed));
+  }
+
+  int _getFruitSpawnCount() {
+    // Calculate how many fruits to spawn at once
+    // Start: 1 fruit, End: 3 fruits (chaos mode!)
+    if (gameTimeLeft > 20) return 1; // Normal: 1 fruit
+    if (gameTimeLeft > 10) return 2; // Medium: 2 fruits
+    return 3; // Chaos: 3 fruits at once!
+  }
+
   void _updateTimerDisplay() {
     final timeLeft = gameTimeLeft.toInt();
     _timerTextComponent?.text = 'Time: ${timeLeft}s';
@@ -281,18 +318,10 @@ class GamePage extends Component
         ),
       );
 
-      // Add pulsing effect when very low
-      if (timeLeft <= 5 &&
-          !_timerTextComponent!.children.any((child) => child is ScaleEffect)) {
-        _timerTextComponent?.add(ScaleEffect.to(
-          Vector2.all(1.2),
-          EffectController(
-            duration: 0.5,
-            reverseDuration: 0.5,
-            infinite: true,
-            curve: Curves.easeInOut,
-          ),
-        ));
+      // Add pulsing effect when very low (simplified)
+      if (timeLeft <= 5) {
+        // Just change the visual without complex effects for now
+        // The color and size changes above are sufficient
       }
     } else {
       // Normal orange color
