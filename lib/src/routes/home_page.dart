@@ -95,11 +95,11 @@ class HomePage extends Component
 
     final rules = [
       'Slice fruit = +1 point',
-      'Touch bomb = Game Over',
-      'Start with 3 lives',
+      'Touch bomb = -1 life',
+      'You have 30 seconds',
       'Miss fruit = -1 life',
-      ' Game ends when lives = 0',
-      ' Fruits split in 2 when sliced',
+      'Game ends when time = 0 or lives = 0',
+      'Fruits split in 2 when sliced',
     ];
 
     _rulesList = rules

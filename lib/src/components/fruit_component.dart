@@ -50,7 +50,7 @@ class FruitComponent extends SpriteComponent {
   @override
   void update(double dt) {
     super.update(dt);
-    if(_initPosition.distanceTo(position) > 60){
+    if (_initPosition.distanceTo(position) > 60) {
       canDragOnShape = true;
     }
     angle += .5 * dt;
@@ -72,7 +72,7 @@ class FruitComponent extends SpriteComponent {
     if ((position.y - AppConfig.objSize) > pageSize.y) {
       removeFromParent();
 
-      if(!divided && !fruit.isBomb){
+      if (!divided && !fruit.isBomb) {
         parentComponent.addMistake();
       }
     }
@@ -84,7 +84,7 @@ class FruitComponent extends SpriteComponent {
     if (!fruit.isBomb && fallingFromTop) {
       _drawAura(canvas);
     }
-    
+
     // Draw the fruit sprite
     super.render(canvas);
   }
@@ -92,11 +92,11 @@ class FruitComponent extends SpriteComponent {
   void _drawAura(Canvas canvas) {
     final center = size / 2;
     final time = _sparkleTimer;
-    
+
     // Create pulsing aura effect
     final auraRadius = (size.x / 2) + 8 + (sin(time * 4) * 3);
     final auraOpacity = (0.3 + sin(time * 3) * 0.2).clamp(0.1, 0.5);
-    
+
     // Choose aura color based on fruit type
     Color auraColor;
     if (fruit.image.contains('apple')) {
@@ -114,19 +114,19 @@ class FruitComponent extends SpriteComponent {
     } else {
       auraColor = Colors.white;
     }
-    
+
     // Draw outer glow
     final outerPaint = Paint()
       ..color = auraColor.withValues(alpha: auraOpacity * 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawCircle(center.toOffset(), auraRadius, outerPaint);
-    
+
     // Draw inner glow
     final innerPaint = Paint()
       ..color = auraColor.withValues(alpha: auraOpacity * 0.6)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawCircle(center.toOffset(), auraRadius * 0.7, innerPaint);
-    
+
     // Draw sparkle particles around the fruit
     final sparkleCount = 8;
     for (int i = 0; i < sparkleCount; i++) {
@@ -134,21 +134,21 @@ class FruitComponent extends SpriteComponent {
       final sparkleDistance = auraRadius * 0.8 + sin(time * 5 + i) * 5;
       final sparkleX = center.x + cos(sparkleAngle) * sparkleDistance;
       final sparkleY = center.y + sin(sparkleAngle) * sparkleDistance;
-      
+
       final sparkleSize = 1.5 + sin(time * 6 + i * 0.5) * 0.8;
-      final sparklePaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.8);
-      
+      final sparklePaint = Paint()..color = Colors.white.withValues(alpha: 0.8);
+
       canvas.drawCircle(Offset(sparkleX, sparkleY), sparkleSize, sparklePaint);
     }
   }
 
   void touchAtPoint(Vector2 vector2) {
-    if(divided && !canDragOnShape){
+    if (divided && !canDragOnShape) {
       return;
     }
-    if(fruit.isBomb){
-      parentComponent.gameOver();
+    if (fruit.isBomb) {
+      parentComponent.addMistake();
+      removeFromParent();
       return;
     }
 
@@ -196,8 +196,7 @@ class FruitComponent extends SpriteComponent {
           divided: true,
         )
       ]);
-    }
-    else {
+    } else {
       // split image
       final dividedImage1 = composition.ImageComposition()
             ..add(image, Vector2(0, 0),
@@ -240,8 +239,8 @@ class FruitComponent extends SpriteComponent {
       ]);
     }
 
-    parentComponent.addScore();
-
+    String fruitName = fruit.image.replaceAll('.png', '');
+    parentComponent.addScore(fruitName);
     removeFromParent();
   }
 }

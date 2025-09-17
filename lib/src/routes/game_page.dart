@@ -1,15 +1,15 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/components.dart' show PolygonComponent;
-import 'dart:ui' show Color, Paint;
+import 'package:flutter/material.dart' hide Route, BackButton;
 import 'package:flutter_fruit_ninja/src/components/back_button.dart';
 import 'package:flutter_fruit_ninja/src/components/pause_button.dart';
 import 'package:flutter_fruit_ninja/src/config/app_config.dart';
 import 'package:flutter_fruit_ninja/src/game.dart';
-
 import '../components/fruit_component.dart';
 
 class GamePage extends Component
@@ -17,14 +17,21 @@ class GamePage extends Component
   final Random random = Random();
   late List<double> fruitsTime;
   late double time, countDown;
-  TextComponent? _countdownTextComponent,
-      _scoreTextComponent;
+  TextComponent? _countdownTextComponent, _scoreTextComponent;
   bool _countdownFinished = false;
   late int mistakeCount, score;
   late int lives;
   LivesHud? _livesHud;
   final List<CircleComponent> _snowflakes = [];
   double _lastSpawnTime = 0;
+
+  // Game timer system (30 seconds)
+  late double gameTimeLeft;
+  TextComponent? _timerTextComponent;
+
+  // Fruit counting system
+  final Map<String, int> fruitCounts = {};
+  TextComponent? _fruitCountsTextComponent;
 
   @override
   void onMount() {
@@ -38,6 +45,12 @@ class GamePage extends Component
     time = 0;
     _countdownFinished = false;
 
+    // Initialize game timer (30 seconds)
+    gameTimeLeft = 30.0;
+
+    // Reset fruit counts when starting new game
+    fruitCounts.clear();
+
     double initTime = 0;
     for (int i = 0; i < 40; i++) {
       if (i != 0) {
@@ -47,7 +60,7 @@ class GamePage extends Component
       final componentTime = random.nextInt(1) + millySecondTime + initTime;
       fruitsTime.add(componentTime);
     }
-    
+
     // Add continuous spawning
     _lastSpawnTime = time;
 
@@ -66,14 +79,40 @@ class GamePage extends Component
       _livesHud = LivesHud(lives: lives)
         ..position = Vector2(game.size.x - 10, 10)
         ..anchor = Anchor.topRight,
-      _scoreTextComponent = TextComponent(
-        text: 'Score: $score',
-        position: Vector2(game.size.x - 10, 50),
+      _timerTextComponent = TextComponent(
+        text: 'Time: ${gameTimeLeft.toInt()}s',
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Colors.orange,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(
+                  offset: Offset(2, 2), blurRadius: 4, color: Colors.black54),
+            ],
+          ),
+        ),
+        position:
+            Vector2(game.size.x - 10, 100), // ห่างจาก fruit counts มากขึ้น
+        anchor: Anchor.topRight,
+      ),
+      _fruitCountsTextComponent = TextComponent(
+        text: '',
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            shadows: [
+              Shadow(
+                  offset: Offset(1, 1), blurRadius: 2, color: Colors.black54),
+            ],
+          ),
+        ),
+        position: Vector2(game.size.x - 10, 45), // ห่างจากหัวใจมากขึ้น
         anchor: Anchor.topRight,
       ),
     ]);
-
-
   }
 
   @override
@@ -91,7 +130,16 @@ class GamePage extends Component
 
       time += dt;
 
+      // Update game timer
+      gameTimeLeft -= dt;
+      _updateTimerDisplay();
 
+      // Check if time is up
+      if (gameTimeLeft <= 0) {
+        gameTimeLeft = 0;
+        gameOver();
+        return;
+      }
 
       fruitsTime.where((element) => element < time).toList().forEach((element) {
         final gameSize = game.size;
@@ -119,11 +167,13 @@ class GamePage extends Component
         ));
         fruitsTime.remove(element);
       });
-      
+
       // Continuous spawning - add new fruit spawn times
-      if (time - _lastSpawnTime > 1.5) { // Spawn every 1.5 seconds
+      if (time - _lastSpawnTime > 1.5) {
+        // Spawn every 1.5 seconds
         final millySecondTime = random.nextInt(100) / 100;
-        final nextSpawnTime = time + 0.5 + millySecondTime; // 0.5-1.5 seconds from now
+        final nextSpawnTime =
+            time + 0.5 + millySecondTime; // 0.5-1.5 seconds from now
         fruitsTime.add(nextSpawnTime);
         _lastSpawnTime = time;
       }
@@ -144,7 +194,7 @@ class GamePage extends Component
         priority: 5,
       )..paint = (Paint()..color = Color.fromRGBO(255, 255, 255, opacity));
       flake.add(_SnowBehavior(
-        speed: speed, 
+        speed: speed,
         drift: random.nextDouble() * 0.8 + 0.3,
         swaySpeed: random.nextDouble() * 2.0 + 1.0,
       ));
@@ -157,15 +207,18 @@ class GamePage extends Component
     for (final flake in _snowflakes) {
       final behavior = flake.children.query<_SnowBehavior>().first;
       flake.position.y += behavior.speed * dt;
-      flake.position.x += sin(time * behavior.swaySpeed + flake.position.y * 0.03) * behavior.drift;
-      
+      flake.position.x +=
+          sin(time * behavior.swaySpeed + flake.position.y * 0.03) *
+              behavior.drift;
+
       // Add slight rotation to snowflakes
       if (flake is CircleComponent) {
         // Create a subtle sparkle effect by varying opacity
-        final sparkle = 0.3 + 0.4 * (1 + sin(time * 3 + flake.position.x * 0.1)) / 2;
+        final sparkle =
+            0.3 + 0.4 * (1 + sin(time * 3 + flake.position.x * 0.1)) / 2;
         flake.paint = Paint()..color = Color.fromRGBO(255, 255, 255, sparkle);
       }
-      
+
       if (flake.position.y > game.size.y + 10) {
         flake.position
           ..y = -10
@@ -189,12 +242,117 @@ class GamePage extends Component
   }
 
   void gameOver() {
+    // Reset fruit counts when game over
+    fruitCounts.clear();
+    _updateFruitCountsDisplay();
+
     game.router.pushNamed('game-over');
   }
 
-  void addScore() {
+  void addScore([String? fruitName]) {
     score++;
-    _scoreTextComponent?.text = 'Score: $score';
+    // Remove score display - now we only show timer
+
+    // Count fruits if fruitName is provided
+    if (fruitName != null && fruitName.isNotEmpty) {
+      fruitCounts[fruitName] = (fruitCounts[fruitName] ?? 0) + 1;
+      _updateFruitCountsDisplay();
+    }
+  }
+
+  void _updateTimerDisplay() {
+    final timeLeft = gameTimeLeft.toInt();
+    _timerTextComponent?.text = 'Time: ${timeLeft}s';
+
+    // Add warning effect when time is running low
+    if (timeLeft <= 10) {
+      // Red color and larger size when time is critical
+      _timerTextComponent?.textRenderer = TextPaint(
+        style: TextStyle(
+          color: timeLeft <= 5 ? Colors.red : Colors.orange,
+          fontSize: timeLeft <= 5 ? 22 : 20,
+          fontWeight: FontWeight.bold,
+          shadows: [
+            Shadow(
+                offset: const Offset(2, 2),
+                blurRadius: timeLeft <= 5 ? 6 : 4,
+                color: Colors.black54),
+          ],
+        ),
+      );
+
+      // Add pulsing effect when very low
+      if (timeLeft <= 5 &&
+          !_timerTextComponent!.children.any((child) => child is ScaleEffect)) {
+        _timerTextComponent?.add(ScaleEffect.to(
+          Vector2.all(1.2),
+          EffectController(
+            duration: 0.5,
+            reverseDuration: 0.5,
+            infinite: true,
+            curve: Curves.easeInOut,
+          ),
+        ));
+      }
+    } else {
+      // Normal orange color
+      _timerTextComponent?.textRenderer = TextPaint(
+        style: const TextStyle(
+          color: Colors.orange,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          shadows: [
+            Shadow(offset: Offset(2, 2), blurRadius: 4, color: Colors.black54),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _updateFruitCountsDisplay() {
+    if (fruitCounts.isEmpty) {
+      _fruitCountsTextComponent?.text = '';
+      return;
+    }
+
+    final List<String> fruitTexts = [];
+    fruitCounts.forEach((fruitName, count) {
+      // Get fruit emoji based on name
+      String emoji = _getFruitEmoji(fruitName);
+      fruitTexts.add('$emoji x$count');
+    });
+
+    // Join with spaces, but limit to 3 items per line
+    String displayText = '';
+    for (int i = 0; i < fruitTexts.length; i++) {
+      if (i > 0 && i % 3 == 0) {
+        displayText += '\n';
+      } else if (i > 0) {
+        displayText += ' ';
+      }
+      displayText += fruitTexts[i];
+    }
+
+    _fruitCountsTextComponent?.text = displayText;
+  }
+
+  String _getFruitEmoji(String fruitName) {
+    switch (fruitName.toLowerCase()) {
+      case 'apple':
+        return '🍎';
+      case 'banana':
+        return '🥤';
+      case 'orange':
+        return '🍊';
+      case 'kiwi':
+        return '🥝';
+      case 'peach':
+        return '🥛';
+      case 'pineapple':
+        return '🍍';
+      default:
+        return '🍎';
+    }
   }
 
   void addMistake() {
@@ -281,7 +439,7 @@ class _SnowBehavior extends Component {
   final double drift;
   final double swaySpeed;
   _SnowBehavior({
-    required this.speed, 
+    required this.speed,
     required this.drift,
     this.swaySpeed = 1.0,
   });
